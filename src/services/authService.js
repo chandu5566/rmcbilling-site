@@ -1,11 +1,12 @@
 import apiService from './apiService';
 
 // Local user database for testing
+// WARNING: These are demo credentials only. In production, use environment variables or a secure configuration.
 const LOCAL_USERS = [
   {
     id: 1,
     username: 'admin',
-    password: 'admin123',
+    password: 'admin123', // Demo only - use proper password hashing in production
     email: 'admin@rmcbilling.com',
     role: 'admin',
     name: 'Admin User',
@@ -13,7 +14,7 @@ const LOCAL_USERS = [
   {
     id: 2,
     username: 'user',
-    password: 'user123',
+    password: 'user123', // Demo only - use proper password hashing in production
     email: 'user@rmcbilling.com',
     role: 'user',
     name: 'Regular User',
@@ -81,13 +82,10 @@ const authService = {
     }
   },
 
-  validateToken: async (token) => {
+  validateToken: async () => {
     try {
-      const response = await apiService.get('/auth/validate', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      // Token validation is handled by apiService interceptor
+      const response = await apiService.get('/auth/validate');
       return response;
     } catch {
       return null;

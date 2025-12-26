@@ -33,7 +33,13 @@ const Reports = () => {
       // Simulate download - In production, this would call the API
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const fileName = `${reportType}_${dateRange.from || 'all'}_to_${dateRange.to || 'today'}.${format}`;
+      // Sanitize filename components
+      const sanitizedReportType = reportType.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const sanitizedFrom = dateRange.from ? dateRange.from.replace(/[^0-9-]/g, '') : 'all';
+      const sanitizedTo = dateRange.to ? dateRange.to.replace(/[^0-9-]/g, '') : 'today';
+      const sanitizedFormat = ['pdf', 'xlsx', 'csv'].includes(format) ? format : 'pdf';
+      
+      const fileName = `${sanitizedReportType}_${sanitizedFrom}_to_${sanitizedTo}.${sanitizedFormat}`;
       alert(`Downloading ${fileName}\n\nNote: This is a demo. In production, this would download the actual report.`);
       
       // In production, you would call the API like this:
@@ -51,7 +57,8 @@ const Reports = () => {
       // link.click();
       // link.parentNode.removeChild(link);
     } catch (error) {
-      alert('Failed to download report. Please try again.');
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
+      alert(`Failed to download report: ${errorMessage}\n\nPlease try again or contact support if the problem persists.`);
       console.error('Download error:', error);
     } finally {
       setLoading(false);

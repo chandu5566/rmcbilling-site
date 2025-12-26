@@ -22,8 +22,16 @@ export const AuthProvider = ({ children }) => {
     
     if (storedUser && token) {
       try {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setUser(JSON.parse(storedUser));
+        const userData = JSON.parse(storedUser);
+        // Validate that the parsed data has expected structure
+        if (userData && typeof userData === 'object' && userData.id && userData.username) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setUser(userData);
+        } else {
+          // Invalid structure, clear storage
+          localStorage.removeItem('user');
+          localStorage.removeItem('authToken');
+        }
       } catch {
         // Invalid stored user data, clear it
         localStorage.removeItem('user');
