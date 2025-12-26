@@ -23,3 +23,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Lambda build artifacts
+lambda-builds/
+lambdas/node_modules/
+lambdas/package-lock.json
+*.zip
+
+# CloudFormation parameters (contains secrets)
+parameters.json
