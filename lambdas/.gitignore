@@ -1,0 +1,21 @@
+# Lambda dependencies and build artifacts
+python/
+*.pyc
+__pycache__/
+
+# Build outputs
+*.zip
+
+# Lambda deployment packages
+lambda-builds/
+
+# Temporary files
+.DS_Store
+*.log
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

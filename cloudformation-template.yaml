@@ -1,0 +1,600 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFormation template for RMC Billing Site - Lambda Functions, API Gateway, and RDS Database'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name
+  
+  DBUsername:
+    Type: String
+    Default: admin
+    Description: Database administrator username
+    MinLength: 1
+    MaxLength: 16
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+  
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: Database administrator password
+    MinLength: 8
+    MaxLength: 41
+  
+  DBName:
+    Type: String
+    Default: rmcbilling
+    Description: Database name
+  
+  JWTSecret:
+    Type: String
+    NoEcho: true
+    Description: JWT secret key for authentication
+    MinLength: 32
+
+Resources:
+  # VPC Configuration
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-vpc'
+
+  # Public Subnets
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-public-subnet-1'
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-public-subnet-2'
+
+  # Private Subnets for RDS
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.11.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-private-subnet-1'
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.12.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-private-subnet-2'
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-igw'
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Route Table
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-public-rt'
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # Security Groups
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Lambda functions
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-lambda-sg'
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS database
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-rds-sg'
+
+  # RDS Subnet Group
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS database
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-db-subnet-group'
+
+  # RDS MySQL Database
+  RDSDatabase:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub '${Environment}-rmcbilling-db'
+      DBName: !Ref DBName
+      Engine: mysql
+      EngineVersion: '8.0.35'
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      StorageType: gp2
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      BackupRetentionPeriod: 7
+      PreferredBackupWindow: '03:00-04:00'
+      PreferredMaintenanceWindow: 'sun:04:00-sun:05:00'
+      PubliclyAccessible: false
+      MultiAZ: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${Environment}-rmcbilling-rds'
+
+  # IAM Role for Lambda Functions
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${Environment}-rmcbilling-lambda-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: LambdaRDSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - rds:*
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                Resource: '*'
+
+  # Lambda Functions
+  AuthLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: RDSDatabase
+    Properties:
+      FunctionName: !Sub '${Environment}-rmcbilling-auth'
+      Runtime: python3.11
+      Handler: lambda_function.login
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def login(event, context):
+              return {'statusCode': 200, 'body': '{"message": "Deploy actual code"}'}
+      Environment:
+        Variables:
+          DB_HOST: !GetAtt RDSDatabase.Endpoint.Address
+          DB_PORT: !GetAtt RDSDatabase.Endpoint.Port
+          DB_USER: !Ref DBUsername
+          DB_PASSWORD: !Ref DBPassword
+          DB_NAME: !Ref DBName
+          JWT_SECRET: !Ref JWTSecret
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      Timeout: 30
+      MemorySize: 256
+
+  CustomersLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: RDSDatabase
+    Properties:
+      FunctionName: !Sub '${Environment}-rmcbilling-customers'
+      Runtime: python3.11
+      Handler: lambda_function.list_customers
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def list_customers(event, context):
+              return {'statusCode': 200, 'body': '{"message": "Deploy actual code"}'}
+      Environment:
+        Variables:
+          DB_HOST: !GetAtt RDSDatabase.Endpoint.Address
+          DB_PORT: !GetAtt RDSDatabase.Endpoint.Port
+          DB_USER: !Ref DBUsername
+          DB_PASSWORD: !Ref DBPassword
+          DB_NAME: !Ref DBName
+          JWT_SECRET: !Ref JWTSecret
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      Timeout: 30
+      MemorySize: 256
+
+  SalesInvoicesLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: RDSDatabase
+    Properties:
+      FunctionName: !Sub '${Environment}-rmcbilling-sales-invoices'
+      Runtime: python3.11
+      Handler: lambda_function.list_invoices
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def list_invoices(event, context):
+              return {'statusCode': 200, 'body': '{"message": "Deploy actual code"}'}
+      Environment:
+        Variables:
+          DB_HOST: !GetAtt RDSDatabase.Endpoint.Address
+          DB_PORT: !GetAtt RDSDatabase.Endpoint.Port
+          DB_USER: !Ref DBUsername
+          DB_PASSWORD: !Ref DBPassword
+          DB_NAME: !Ref DBName
+          JWT_SECRET: !Ref JWTSecret
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      Timeout: 30
+      MemorySize: 256
+
+  DeliveryChallansLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: RDSDatabase
+    Properties:
+      FunctionName: !Sub '${Environment}-rmcbilling-delivery-challans'
+      Runtime: python3.11
+      Handler: lambda_function.list_challans
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def list_challans(event, context):
+              return {'statusCode': 200, 'body': '{"message": "Deploy actual code"}'}
+      Environment:
+        Variables:
+          DB_HOST: !GetAtt RDSDatabase.Endpoint.Address
+          DB_PORT: !GetAtt RDSDatabase.Endpoint.Port
+          DB_USER: !Ref DBUsername
+          DB_PASSWORD: !Ref DBPassword
+          DB_NAME: !Ref DBName
+          JWT_SECRET: !Ref JWTSecret
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      Timeout: 30
+      MemorySize: 256
+
+  DashboardLambda:
+    Type: AWS::Lambda::Function
+    DependsOn: RDSDatabase
+    Properties:
+      FunctionName: !Sub '${Environment}-rmcbilling-dashboard'
+      Runtime: python3.11
+      Handler: lambda_function.stats
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          def stats(event, context):
+              return {'statusCode': 200, 'body': '{"message": "Deploy actual code"}'}
+      Environment:
+        Variables:
+          DB_HOST: !GetAtt RDSDatabase.Endpoint.Address
+          DB_PORT: !GetAtt RDSDatabase.Endpoint.Port
+          DB_USER: !Ref DBUsername
+          DB_PASSWORD: !Ref DBPassword
+          DB_NAME: !Ref DBName
+          JWT_SECRET: !Ref JWTSecret
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1
+          - !Ref PrivateSubnet2
+      Timeout: 30
+      MemorySize: 256
+
+  # API Gateway
+  ApiGateway:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${Environment}-rmcbilling-api'
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - '*'
+        MaxAge: 300
+
+  # API Gateway Stage
+  ApiGatewayStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ApiGateway
+      StageName: !Ref Environment
+      AutoDeploy: true
+
+  # Lambda Permissions for API Gateway
+  AuthLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AuthLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*'
+
+  CustomersLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CustomersLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*'
+
+  SalesInvoicesLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SalesInvoicesLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*'
+
+  DeliveryChallansLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DeliveryChallansLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*'
+
+  DashboardLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DashboardLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*'
+
+  # API Gateway Integrations
+  AuthIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt AuthLambda.Arn
+      PayloadFormatVersion: '2.0'
+
+  CustomersIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt CustomersLambda.Arn
+      PayloadFormatVersion: '2.0'
+
+  SalesInvoicesIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt SalesInvoicesLambda.Arn
+      PayloadFormatVersion: '2.0'
+
+  DeliveryChallansIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt DeliveryChallansLambda.Arn
+      PayloadFormatVersion: '2.0'
+
+  DashboardIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt DashboardLambda.Arn
+      PayloadFormatVersion: '2.0'
+
+  # API Gateway Routes
+  AuthLoginRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'POST /api/auth/login'
+      Target: !Sub 'integrations/${AuthIntegration}'
+
+  AuthValidateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/auth/validate'
+      Target: !Sub 'integrations/${AuthIntegration}'
+
+  CustomersListRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/customers'
+      Target: !Sub 'integrations/${CustomersIntegration}'
+
+  CustomersCreateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'POST /api/customers'
+      Target: !Sub 'integrations/${CustomersIntegration}'
+
+  CustomersGetRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/customers/{id}'
+      Target: !Sub 'integrations/${CustomersIntegration}'
+
+  CustomersUpdateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'PUT /api/customers/{id}'
+      Target: !Sub 'integrations/${CustomersIntegration}'
+
+  CustomersDeleteRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'DELETE /api/customers/{id}'
+      Target: !Sub 'integrations/${CustomersIntegration}'
+
+  SalesInvoicesListRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/sales-invoices'
+      Target: !Sub 'integrations/${SalesInvoicesIntegration}'
+
+  SalesInvoicesCreateRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'POST /api/sales-invoices'
+      Target: !Sub 'integrations/${SalesInvoicesIntegration}'
+
+  DeliveryChallansListRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/delivery-challans'
+      Target: !Sub 'integrations/${DeliveryChallansIntegration}'
+
+  DashboardStatsRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/dashboard/stats'
+      Target: !Sub 'integrations/${DashboardIntegration}'
+
+  DashboardQuantityRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /api/dashboard/quantity'
+      Target: !Sub 'integrations/${DashboardIntegration}'
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub '${Environment}-rmcbilling-api-endpoint'
+
+  RDSEndpoint:
+    Description: RDS database endpoint
+    Value: !GetAtt RDSDatabase.Endpoint.Address
+    Export:
+      Name: !Sub '${Environment}-rmcbilling-rds-endpoint'
+
+  RDSPort:
+    Description: RDS database port
+    Value: !GetAtt RDSDatabase.Endpoint.Port
+    Export:
+      Name: !Sub '${Environment}-rmcbilling-rds-port'
+
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${Environment}-rmcbilling-vpc-id'
+
+  LambdaExecutionRoleArn:
+    Description: Lambda execution role ARN
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${Environment}-rmcbilling-lambda-role-arn'
