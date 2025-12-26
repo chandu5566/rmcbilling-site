@@ -6,6 +6,13 @@ const auth = require('../utils/auth');
 const response = require('../utils/response');
 const { asyncHandler } = require('../utils/errorHandler');
 
+// Constants
+const ORDER_STATUS = {
+  PENDING: 'pending',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled'
+};
+
 /**
  * Get dashboard statistics
  * GET /dashboard/stats
@@ -26,7 +33,8 @@ exports.stats = asyncHandler(async (event) => {
   );
 
   const [pendingOrders] = await db.query(
-    'SELECT COUNT(*) as count FROM sales_orders WHERE status = "pending"'
+    'SELECT COUNT(*) as count FROM sales_orders WHERE status = ?',
+    [ORDER_STATUS.PENDING]
   );
 
   return response.success({

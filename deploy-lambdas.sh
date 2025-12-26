@@ -3,7 +3,7 @@
 # Lambda Deployment Script for RMC Billing Site
 # This script packages and deploys all Lambda functions
 
-set -e
+set -euo pipefail
 
 # Configuration
 ENVIRONMENT=${1:-dev}

@@ -3,10 +3,10 @@
  * This provides reusable CRUD operations for simple tables
  */
 
-const db = require('../utils/db');
-const auth = require('../utils/auth');
-const response = require('../utils/response');
-const { asyncHandler } = require('../utils/errorHandler');
+const db = require('./db');
+const auth = require('./auth');
+const response = require('./response');
+const { asyncHandler } = require('./errorHandler');
 
 /**
  * Create a generic CRUD handler for a table

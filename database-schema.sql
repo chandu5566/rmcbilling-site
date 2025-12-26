@@ -312,6 +312,8 @@ CREATE TABLE IF NOT EXISTS cash_book (
 
 -- Insert default admin user (password: admin123)
 -- Password hash is bcrypt hash of 'admin123'
+-- ⚠️ SECURITY WARNING: Change this password immediately after deployment!
+-- To generate a new password hash, use bcrypt with salt rounds 10
 INSERT INTO users (username, password_hash, email, full_name, role, is_active)
 VALUES ('admin', '$2a$10$xqFw8YLgXJH.zN8H8H7GJuRDHGN5VqFJL1qYhG0FqU7E5Y2P6D5qK', 'admin@rmcbilling.com', 'System Administrator', 'admin', TRUE)
 ON DUPLICATE KEY UPDATE username=username;
