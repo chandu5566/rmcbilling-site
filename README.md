@@ -192,6 +192,44 @@ Create a `.env` file based on `.env.example`:
 VITE_API_BASE_URL=http://localhost:3000/api
 ```
 
+## Backend Infrastructure
+
+This repository includes a complete AWS serverless backend implementation:
+
+- **16 Lambda Functions** covering all API endpoints
+- **CloudFormation Template** for infrastructure as code
+- **RDS MySQL Database** with complete schema
+- **API Gateway** for HTTP API routing
+- **VPC Configuration** with security groups
+
+### Backend Documentation
+
+- 📘 **[BACKEND_SETUP.md](./BACKEND_SETUP.md)** - Quick start guide for backend deployment
+- 📗 **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Detailed deployment instructions
+- 📙 **[LAMBDA_REFERENCE.md](./LAMBDA_REFERENCE.md)** - Technical API reference
+
+### Quick Backend Deployment
+
+```bash
+# 1. Install Lambda dependencies
+cd lambdas && npm install
+
+# 2. Deploy CloudFormation stack
+aws cloudformation create-stack \
+  --stack-name rmcbilling-backend-dev \
+  --template-body file://cloudformation-template.yaml \
+  --parameters file://parameters.json \
+  --capabilities CAPABILITY_NAMED_IAM
+
+# 3. Deploy Lambda functions
+./deploy-lambdas.sh dev us-east-1
+
+# 4. Initialize database
+mysql -h <RDS_ENDPOINT> -u admin -p rmcbilling < database-schema.sql
+```
+
+See [BACKEND_SETUP.md](./BACKEND_SETUP.md) for complete instructions.
+
 ## Contributing
 
 1. Fork the repository
