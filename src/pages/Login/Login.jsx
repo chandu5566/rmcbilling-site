@@ -37,7 +37,7 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1>RMC Billing Portal</h1>
+          <h1>Speed Billing Portal</h1>
           <p>Sign in to your account</p>
         </div>
 

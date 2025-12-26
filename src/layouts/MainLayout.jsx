@@ -3,16 +3,17 @@ import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import authService from '../services/authService';
 import './MainLayout.css';
+import speedLogo from '../icons/speed_logo.png';
 
 const MainLayout = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
-    sales: true,
-    customerManagement: true,
-    qualityControl: true,
-    inventory: true,
-    finance: true,
-    reports: true
+    sales: false,
+    customerManagement: false,
+    qualityControl: false,
+    inventory: false,
+    finance: false,
+    reports: false
   });
   
   const { user, logout } = useAuth();
@@ -42,11 +43,13 @@ const MainLayout = () => {
     }
   };
 
+
   return (
     <div className="main-layout">
       <header className="header">
         <div className="header-content">
-          <h1>Readmix Concrete - Business Portal</h1>
+          <img src={speedLogo} alt="Speed Billing Logo" className="header-logo" />
+          <h1>Speed Billing Portal</h1>
           <div className="header-actions">
             <div className="user-info">
               <span className="user-icon">👤</span>
