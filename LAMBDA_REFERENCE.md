@@ -166,7 +166,7 @@ Reports generation and management
 - Automated Backups: 7 days retention
 
 ### Lambda Resources
-- Runtime: Node.js 18.x
+- Runtime: Python 3.11
 - Memory: 256 MB
 - Timeout: 30 seconds
 - VPC Configuration: Private subnets

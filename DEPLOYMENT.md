@@ -19,7 +19,7 @@ The infrastructure includes:
    aws --version
    aws configure
    ```
-3. **Node.js**: Version 18.x or later (for local development/testing)
+3. **Python 3**: Version 18.x or later (for local development/testing)
 4. **MySQL Client**: For database schema setup (optional)
 
 ## Directory Structure
@@ -64,7 +64,7 @@ lambdas/
 │   └── index.js
 ├── reports/                    # Reports module
 │   └── index.js
-└── package.json                # Node.js dependencies
+└── requirements.txt                # Python 3 dependencies
 ```
 
 ## Deployment Steps
@@ -74,15 +74,15 @@ lambdas/
 1. Install Lambda dependencies:
    ```bash
    cd lambdas
-   npm install
+   pip3 install -r requirements.txt
    ```
 
 2. Package each Lambda function:
    ```bash
    # Create deployment packages for each module
-   cd auth && zip -r auth.zip index.js ../utils/ ../node_modules/
-   cd ../customers && zip -r customers.zip index.js ../utils/ ../node_modules/
-   cd ../sales-invoices && zip -r sales-invoices.zip index.js ../utils/ ../node_modules/
+   cd auth && zip -r auth.zip index.js ../utils/ ../python (dependencies)/
+   cd ../customers && zip -r customers.zip index.js ../utils/ ../python (dependencies)/
+   cd ../sales-invoices && zip -r sales-invoices.zip index.js ../utils/ ../python (dependencies)/
    # ... repeat for other modules
    ```
 
@@ -91,7 +91,7 @@ lambdas/
    #!/bin/bash
    for dir in auth customers sales-invoices delivery-challans dashboard; do
      cd $dir
-     zip -r ${dir}.zip index.js ../utils/ ../node_modules/
+     zip -r ${dir}.zip index.js ../utils/ ../python (dependencies)/
      cd ..
    done
    ```

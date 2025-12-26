@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Lambda Deployment Script for RMC Billing Site
+# Lambda Deployment Script for RMC Billing Site (Python)
 # This script packages and deploys all Lambda functions
 
 set -euo pipefail
@@ -16,7 +16,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== RMC Billing Lambda Deployment Script ===${NC}"
+echo -e "${GREEN}=== RMC Billing Lambda Deployment Script (Python) ===${NC}"
 echo "Environment: $ENVIRONMENT"
 echo "Region: $AWS_REGION"
 echo "Stack Name: $STACK_NAME"
@@ -28,9 +28,9 @@ if ! command -v aws &> /dev/null; then
     exit 1
 fi
 
-# Check if Node.js is installed
-if ! command -v node &> /dev/null; then
-    echo -e "${RED}Error: Node.js is not installed${NC}"
+# Check if Python is installed
+if ! command -v python3 &> /dev/null; then
+    echo -e "${RED}Error: Python 3 is not installed${NC}"
     exit 1
 fi
 
@@ -38,9 +38,9 @@ fi
 cd "$(dirname "$0")/lambdas"
 
 # Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo -e "${YELLOW}Installing Lambda dependencies...${NC}"
-    npm install
+if [ ! -d "python" ]; then
+    echo -e "${YELLOW}Installing Lambda Python dependencies...${NC}"
+    pip3 install -r requirements.txt -t python/
     echo -e "${GREEN}Dependencies installed${NC}"
 fi
 
@@ -85,8 +85,10 @@ for module in "${MODULES[@]}"; do
     # Copy utils folder
     cp -r utils "$TEMP_DIR/"
     
-    # Copy node_modules
-    cp -r node_modules "$TEMP_DIR/"
+    # Copy Python dependencies
+    if [ -d "python" ]; then
+        cp -r python/* "$TEMP_DIR/"
+    fi
     
     # Create zip file
     cd "$TEMP_DIR"

@@ -1,0 +1,13 @@
+# AWS Lambda Python Dependencies for RMC Billing Site
+
+# MySQL database connector
+PyMySQL==1.1.0
+
+# JWT token generation and validation
+PyJWT==2.8.0
+
+# Password hashing
+bcrypt==4.1.2
+
+# Python cryptography (required by PyJWT)
+cryptography==41.0.7

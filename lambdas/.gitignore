@@ -1,6 +1,7 @@
 # Lambda dependencies and build artifacts
-node_modules/
-package-lock.json
+python/
+*.pyc
+__pycache__/
 
 # Build outputs
 *.zip

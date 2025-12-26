@@ -234,14 +234,13 @@ Resources:
     DependsOn: RDSDatabase
     Properties:
       FunctionName: !Sub '${Environment}-rmcbilling-auth'
-      Runtime: nodejs18.x
-      Handler: index.login
+      Runtime: python3.11
+      Handler: lambda_function.login
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
         ZipFile: |
-          exports.login = async (event) => {
-            return { statusCode: 200, body: JSON.stringify({ message: 'Deploy actual code' }) };
-          };
+          def login(event, context):
+              return {'statusCode': 200, 'body': '{"message": "Deploy actual code"}'}
       Environment:
         Variables:
           DB_HOST: !GetAtt RDSDatabase.Endpoint.Address
@@ -264,14 +263,13 @@ Resources:
     DependsOn: RDSDatabase
     Properties:
       FunctionName: !Sub '${Environment}-rmcbilling-customers'
-      Runtime: nodejs18.x
-      Handler: index.list
+      Runtime: python3.11
+      Handler: lambda_function.list_customers
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
         ZipFile: |
-          exports.list = async (event) => {
-            return { statusCode: 200, body: JSON.stringify({ message: 'Deploy actual code' }) };
-          };
+          def list_customers(event, context):
+              return {'statusCode': 200, 'body': '{"message": "Deploy actual code"}'}
       Environment:
         Variables:
           DB_HOST: !GetAtt RDSDatabase.Endpoint.Address
@@ -294,14 +292,13 @@ Resources:
     DependsOn: RDSDatabase
     Properties:
       FunctionName: !Sub '${Environment}-rmcbilling-sales-invoices'
-      Runtime: nodejs18.x
-      Handler: index.list
+      Runtime: python3.11
+      Handler: lambda_function.list_invoices
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
         ZipFile: |
-          exports.list = async (event) => {
-            return { statusCode: 200, body: JSON.stringify({ message: 'Deploy actual code' }) };
-          };
+          def list_invoices(event, context):
+              return {'statusCode': 200, 'body': '{"message": "Deploy actual code"}'}
       Environment:
         Variables:
           DB_HOST: !GetAtt RDSDatabase.Endpoint.Address
@@ -324,14 +321,13 @@ Resources:
     DependsOn: RDSDatabase
     Properties:
       FunctionName: !Sub '${Environment}-rmcbilling-delivery-challans'
-      Runtime: nodejs18.x
-      Handler: index.list
+      Runtime: python3.11
+      Handler: lambda_function.list_challans
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
         ZipFile: |
-          exports.list = async (event) => {
-            return { statusCode: 200, body: JSON.stringify({ message: 'Deploy actual code' }) };
-          };
+          def list_challans(event, context):
+              return {'statusCode': 200, 'body': '{"message": "Deploy actual code"}'}
       Environment:
         Variables:
           DB_HOST: !GetAtt RDSDatabase.Endpoint.Address
@@ -354,14 +350,13 @@ Resources:
     DependsOn: RDSDatabase
     Properties:
       FunctionName: !Sub '${Environment}-rmcbilling-dashboard'
-      Runtime: nodejs18.x
-      Handler: index.stats
+      Runtime: python3.11
+      Handler: lambda_function.stats
       Role: !GetAtt LambdaExecutionRole.Arn
       Code:
         ZipFile: |
-          exports.stats = async (event) => {
-            return { statusCode: 200, body: JSON.stringify({ message: 'Deploy actual code' }) };
-          };
+          def stats(event, context):
+              return {'statusCode': 200, 'body': '{"message": "Deploy actual code"}'}
       Environment:
         Variables:
           DB_HOST: !GetAtt RDSDatabase.Endpoint.Address

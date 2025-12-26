@@ -26,9 +26,15 @@ dist-ssr
 
 # Lambda build artifacts
 lambda-builds/
-lambdas/node_modules/
-lambdas/package-lock.json
+lambdas/python/
 *.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 
 # CloudFormation parameters (contains secrets)
 parameters.json

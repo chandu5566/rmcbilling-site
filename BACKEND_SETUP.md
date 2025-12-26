@@ -94,7 +94,7 @@ Complete MySQL schema with 15 tables:
 1. **Install dependencies:**
    ```bash
    cd lambdas
-   npm install
+   pip3 install -r requirements.txt
    ```
 
 2. **Create parameters file:**
@@ -231,7 +231,7 @@ VITE_API_BASE_URL=https://<your-api-id>.execute-api.us-east-1.amazonaws.com/dev/
        ▼
 ┌─────────────────────────────────┐
 │      Lambda Functions           │
-│  (16 functions, Node.js 18.x)   │
+│  (16 functions, Python 3.11)   │
 │     - Authentication            │
 │     - Business Logic            │
 │     - Data Validation           │
