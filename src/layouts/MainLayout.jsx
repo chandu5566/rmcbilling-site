@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import authService from '../services/authService';
 import './MainLayout.css';
 
 const MainLayout = () => {
@@ -9,8 +11,12 @@ const MainLayout = () => {
     customerManagement: true,
     qualityControl: true,
     inventory: true,
-    finance: true
+    finance: true,
+    reports: true
   });
+  
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -23,11 +29,35 @@ const MainLayout = () => {
     }));
   };
 
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Logout anyway even if API call fails
+      logout();
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="main-layout">
       <header className="header">
         <div className="header-content">
           <h1>Readmix Concrete - Business Portal</h1>
+          <div className="header-actions">
+            <div className="user-info">
+              <span className="user-icon">👤</span>
+              <span className="user-name">{user?.name || user?.username}</span>
+              {user?.role && <span className="user-role">({user.role})</span>}
+            </div>
+            <button onClick={handleLogout} className="logout-button">
+              <span className="logout-icon">🚪</span>
+              Logout
+            </button>
+          </div>
         </div>
       </header>
       
@@ -184,6 +214,29 @@ const MainLayout = () => {
               <>
                 <li>
                   <Link to="/cash-book">Cash Book</Link>
+                </li>
+              </>
+            )}
+            
+            <li className="nav-section-header">
+              <button 
+                className="section-toggle"
+                onClick={() => toggleSection('reports')}
+                aria-label={expandedSections.reports ? "Collapse Reports section" : "Expand Reports section"}
+              >
+                <span className="nav-icon">📊</span>
+                {!isSidebarCollapsed && (
+                  <>
+                    <span className="section-title">Reports</span>
+                    <span className="expand-icon">{expandedSections.reports ? '▼' : '▶'}</span>
+                  </>
+                )}
+              </button>
+            </li>
+            {expandedSections.reports && !isSidebarCollapsed && (
+              <>
+                <li>
+                  <Link to="/reports">Download Reports</Link>
                 </li>
               </>
             )}

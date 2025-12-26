@@ -7,6 +7,21 @@ const API_CONFIG = {
   
   // API Endpoints
   ENDPOINTS: {
+    // Authentication endpoints
+    AUTH: {
+      LOGIN: '/auth/login',
+      LOGOUT: '/auth/logout',
+      VALIDATE: '/auth/validate',
+      REFRESH: '/auth/refresh',
+    },
+    
+    // Reports endpoints
+    REPORTS: {
+      DOWNLOAD: '/reports/download',
+      PREVIEW: '/reports/preview',
+      LIST: '/reports',
+    },
+    
     // Sales Invoice endpoints
     SALES_INVOICE: {
       LIST: '/sales-invoices',
